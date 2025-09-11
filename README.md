@@ -31,7 +31,10 @@ ocr_benchmark_project/
 │   ├── local_llm_runner.py   # Florence-2 (local LLM) runner
 │   ├── paddle_runner.py      # PaddleOCR runner
 │   └── tesseract_runner.py   # Tesseract runner
-└── utils.py                # Helper functions for metrics, config, and logging```
+└── utils.py                # Helper functions for metrics, config, and logging
+```
+
+---
 
 ## Setup and Installation
 
