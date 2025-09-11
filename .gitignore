@@ -1,0 +1,72 @@
+# =============================================================================
+#  Secrets & Environment Files - CRITICAL
+# =============================================================================
+# Never commit your API keys or environment-specific variables.
+.env
+
+
+# =============================================================================
+#  Python & Virtual Environments
+# =============================================================================
+# Python bytecode and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment folders (common names)
+venv/
+.venv/
+env/
+
+
+# =============================================================================
+#  Project-Specific Generated Files
+# =============================================================================
+# Output directories from the benchmark runs
+results/
+demo_results/
+*results/
+
+# Log files
+*.log
+benchmark.log
+
+
+# =============================================================================
+#  Large Data & Model Files
+# =============================================================================
+# Ignore large PDF files that might be added for testing, but keep the demo.
+# This prevents accidentally committing large test assets.
+sample_data/*.pdf
+# !sample_data/demo_sample.pdf
+
+# Ignore large ground truth files, but keep the demo.
+sample_data/*.json
+# !sample_data/sample_gemini.json
+
+# Common extensions for large model files if downloaded locally
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+
+# =============================================================================
+#  IDE & Editor Configuration
+# =============================================================================
+# Visual Studio Code
+.vscode/
+
+# JetBrains (PyCharm)
+.idea/
+
+
+# =============================================================================
+#  OS-specific Files
+# =============================================================================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

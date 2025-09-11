@@ -1,0 +1,23 @@
+{
+  "ground_truth_generation": {
+    "default_pdf": "sample_data/Generative AI Interview Q&A (6+ Years Experience).pdf",
+    "default_output_json": "sample_data/Generative AI Interview Q&A (6+ Years Experience).json",
+    "dpi": 300,
+    "model_name": "models/gemini-2.5-flash",
+    "poppler_path": "/opt/homebrew/opt/poppler/bin"
+  },
+  "benchmark_run": {
+    "default_pdf": "sample_data/Generative AI Interview Q&A (6+ Years Experience).pdf",
+    "default_gemini_gt": "sample_data/Generative AI Interview Q&A (6+ Years Experience).json",
+    "default_out_dir": "results",
+    "dpi": 150,
+    "poppler_path": "/opt/homebrew/opt/poppler/bin",
+    "enable_models": {
+      "tesseract": false,
+      "easyocr": true,
+      "paddle_ppstructure": false,  
+      "gemini-2.5-flash": true,
+      "florence2_base": false       
+    }
+  }
+}
