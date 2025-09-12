@@ -1,3 +1,5 @@
+# main.py
+
 import argparse
 import shutil
 import tempfile
@@ -13,10 +15,9 @@ from dotenv import load_dotenv
 
 from utils import (
     read_gemini_ground_truth,
-    compute_cer,
-    compute_word_measures,
     load_config,
-    setup_logger
+    setup_logger,
+    compute_all_metrics
 )
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,6 @@ def resolve_input_path(cmd_path, default_dir="sample_data"):
 #  Core Processing Logic
 # ======================================================================================
 def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run_config):
-    # ... (The entire process function is unchanged) ...
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Results will be saved in: {out_dir.resolve()}")
@@ -122,14 +122,24 @@ def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run_
                     page_text = f"[OCR_ERROR: {e}]"
                 
                 save_text(model_out_dir / f"page_{page_idx}.txt", page_text)
+                
                 gt = gemini_gt.get(page_idx, '')
                 hyp = page_text or ''
-                cer, _ = compute_cer(gt, hyp)
-                w, measures = compute_word_measures(gt, hyp) if gt else (None, {})
-                char_acc = (1.0 - cer) if cer is not None else None
-                row = {'model': runner.name, 'page': page_idx, 'gt_len_chars': len(gt), 'hyp_len_chars': len(hyp), 'cer': cer, 'wer': w, 'char_acc': char_acc, 'substitutions': measures.get('substitutions'), 'deletions': measures.get('deletions'), 'insertions': measures.get('insertions')}
+                
+                # Call the new comprehensive metrics engine
+                metrics = compute_all_metrics(gt, hyp)
+                
+                row = {
+                    'model': runner.name,
+                    'page': page_idx,
+                    'gt_len_chars': len(gt),
+                    'hyp_len_chars': len(hyp)
+                }
+                row.update(metrics)
+                
                 summary_rows.append(row)
-                del page_text, hyp, gt
+                
+                del page_text, hyp, gt, metrics
                 gc.collect()
             
             logger.info(f"--- Finished Model: {runner.name}. Releasing resources. ---")
@@ -160,7 +170,7 @@ def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run_
 # ======================================================================================
 def cli():
     setup_logger()
-    load_dotenv()  # <-- 2. CALL THE FUNCTION HERE to load the .env file
+    load_dotenv()
 
     config = load_config()
     benchmark_config = config.get("benchmark_run", {})

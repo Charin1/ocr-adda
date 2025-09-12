@@ -18,11 +18,11 @@
         "runner": "tesseract"
       },
       "easyocr": {
-        "enabled": false,
+        "enabled": true,
         "runner": "easyocr"
       },
       "paddle_ppstructure": {
-        "enabled": true,
+        "enabled": false,
         "runner": "paddle_ppstructure"
       },
       "florence2_base": {

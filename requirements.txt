@@ -116,3 +116,6 @@ threadpoolctl==3.6.0
 tiktoken==0.11.0
 tzdata==2025.2
 wcwidth==0.2.13
+nltk
+rouge_score
+absl-py
