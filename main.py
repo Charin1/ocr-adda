@@ -1,5 +1,3 @@
-# main.py - OCR benchmark harness (Final Version with Logging and Dynamic Importing)
-
 import argparse
 import shutil
 import tempfile
@@ -11,29 +9,26 @@ from pathlib import Path
 from pdf2image import convert_from_path
 import importlib
 import logging
+from dotenv import load_dotenv
 
-# --- Local project utilities ---
 from utils import (
     read_gemini_ground_truth,
     compute_cer,
     compute_word_measures,
     load_config,
-    setup_logger  # Import our logger setup function
+    setup_logger
 )
 
-# Get a logger for this module. The setup will be done in cli().
 logger = logging.getLogger(__name__)
 
 # ======================================================================================
 #  Runner Configuration
 # ======================================================================================
-# Stores the full import path to each runner class as a string.
-# The script will only import a path if its corresponding flag is true in config.json.
 RUNNER_MAP = {
     'tesseract': 'runners.tesseract_runner.TesseractRunner',
     'easyocr': 'runners.easyocr_runner.EasyOCRRunner',
     'paddle_ppstructure': 'runners.paddle_runner.PaddleStructureRunner',
-    'gemini_1_5_flash': 'runners.api_runner.GeminiRunner',
+    'gemini_api': 'runners.api_runner.GeminiRunner',
     'florence2_base': 'runners.local_llm_runner.FlorenceRunner'
 }
 
@@ -41,19 +36,13 @@ RUNNER_MAP = {
 #  Helper Functions
 # ======================================================================================
 def save_text(path, text):
-    """Saves text content to a file, creating parent directories if needed."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding='utf-8')
 
 def resolve_input_path(cmd_path, default_dir="sample_data"):
-    """
-    Resolves the input path. If the direct path doesn't exist,
-    it tries to find the file in a default directory.
-    """
     path = Path(cmd_path)
-    if path.exists():
-        return path
+    if path.exists(): return path
     fallback_path = Path(default_dir) / path.name
     if fallback_path.exists():
         logger.info(f"Path '{cmd_path}' not found. Using fallback: '{fallback_path}'")
@@ -63,10 +52,8 @@ def resolve_input_path(cmd_path, default_dir="sample_data"):
 # ======================================================================================
 #  Core Processing Logic
 # ======================================================================================
-def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run):
-    """
-    Main function to run the OCR benchmark process.
-    """
+def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run_config):
+    # ... (The entire process function is unchanged) ...
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Results will be saved in: {out_dir.resolve()}")
@@ -91,23 +78,30 @@ def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run)
 
         runners = []
         logger.info("Initializing enabled OCR models...")
-        for name in models_to_run:
-            if name in RUNNER_MAP:
+        for model_config in models_to_run_config:
+            runner_key = model_config["runner"]
+            params = model_config.get("params", {})
+            
+            if runner_key in RUNNER_MAP:
                 try:
-                    class_path = RUNNER_MAP[name]
+                    class_path = RUNNER_MAP[runner_key]
                     module_path, class_name = class_path.rsplit('.', 1)
                     
-                    logger.info(f"  -> Dynamically importing '{class_name}'...")
+                    logger.info(f"  -> Dynamically importing '{class_name}' for '{model_config['name']}'...")
                     module = importlib.import_module(module_path)
                     runner_class = getattr(module, class_name)
                     
-                    instance = runner_class(['en']) if name == 'easyocr' else runner_class()
+                    if runner_key == 'easyocr':
+                        instance = runner_class(['en'])
+                    else:
+                        instance = runner_class(**params)
+                    
                     runners.append(instance)
-                    logger.info(f"  [SUCCESS] Initialized '{name}'")
+                    logger.info(f"  [SUCCESS] Initialized '{model_config['name']}'")
                 except Exception as e:
-                    logger.error(f"  [FAILURE] Could not initialize '{name}'.", exc_info=True)
+                    logger.error(f"  [FAILURE] Could not initialize '{model_config['name']}'.", exc_info=True)
             else:
-                logger.warning(f"  [SKIPPED] Model '{name}' from config not found in RUNNER_MAP.")
+                logger.warning(f"  [SKIPPED] Runner key '{runner_key}' not found in RUNNER_MAP.")
         
         if not runners:
             logger.critical("No models were successfully initialized. Exiting.")
@@ -165,21 +159,25 @@ def process(pdf_path, gemini_gt_path, out_dir, dpi, poppler_path, models_to_run)
 #  Command-Line Interface
 # ======================================================================================
 def cli():
-    """Defines the CLI. Model selection is driven ENTIRELY by config.json."""
-    # Set up the logger as the very first action.
     setup_logger()
+    load_dotenv()  # <-- 2. CALL THE FUNCTION HERE to load the .env file
 
     config = load_config()
     benchmark_config = config.get("benchmark_run", {})
     
-    enable_models = benchmark_config.get("enable_models", {})
-    models_to_run = [model_name for model_name, is_enabled in enable_models.items() if is_enabled]
+    models_config = benchmark_config.get("models", {})
+    models_to_run_config = []
+    for model_name, config_data in models_config.items():
+        if config_data.get("enabled", False):
+            config_data['name'] = model_name
+            models_to_run_config.append(config_data)
 
-    if not models_to_run:
-        logger.critical("No models are enabled in 'enable_models' of config.json. Exiting.")
+    if not models_to_run_config:
+        logger.critical("No models are enabled in the 'models' section of config.json. Exiting.")
         sys.exit(1)
     
-    logger.info(f"Models enabled in config.json: {', '.join(models_to_run)}")
+    enabled_model_names = [cfg['name'] for cfg in models_to_run_config]
+    logger.info(f"Models enabled in config.json: {', '.join(enabled_model_names)}")
 
     parser = argparse.ArgumentParser(description="A modular OCR benchmarking tool driven by config.json.")
     
@@ -197,7 +195,7 @@ def cli():
         out_dir=args.out_dir,
         dpi=args.dpi,
         poppler_path=args.poppler_path,
-        models_to_run=models_to_run
+        models_to_run_config=models_to_run_config
     )
 
 if __name__ == '__main__':
