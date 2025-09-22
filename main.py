@@ -30,7 +30,8 @@ RUNNER_MAP = {
     'easyocr': 'runners.easyocr_runner.EasyOCRRunner',
     'paddle_ppstructure': 'runners.paddle_runner.PaddleStructureRunner',
     'gemini_api': 'runners.api_runner.GeminiRunner',
-    'florence2_base': 'runners.local_llm_runner.FlorenceRunner'
+    'florence2_base': 'runners.local_llm_runner.FlorenceRunner',
+    'granite_docling': 'runners.granite_runner.GraniteRunner'
 }
 
 # ======================================================================================

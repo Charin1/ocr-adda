@@ -36,6 +36,10 @@
           "display_name": "gemini-2.5-flash",
           "api_model_name": "gemini-2.5-flash"
         }
+      },
+      "granite-docling-258M": {
+        "enabled": true,
+        "runner": "granite_docling"
       }
     }
   }
